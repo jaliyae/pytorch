@@ -128,7 +128,8 @@ class ChunkDataBuffer {
 
   /// Push exceptions throwed during preloading into chunk queue. Called from the ChunkDataSet worker threads.
   void add_chunk_data(size_t index, std::exception_ptr e_ptr) {
-    std::unique_lock<std::mutex> lock(mutex_);
+    {
+      std::unique_lock<std::mutex> lock(mutex_);
     cvw_.wait(lock, [this] {
       // stop loading if we have preloaded enough data.
       return this->total_example_count_in_queue_ < queue_depth_s;
@@ -136,6 +137,7 @@ class ChunkDataBuffer {
     ChunkData<BatchType, ExampleSampler> chunk_data(index, e_ptr);
     chunk_queue_.push(std::move(chunk_data));
     lock.unlock();
+    }
     cvr_.notify_all(); // notify all readers.
   }
 

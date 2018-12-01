@@ -1202,25 +1202,34 @@ TEST(DataLoaderTest, TestExceptionsArePropagatedFromWorkers) {
   }
 }
 
-
+template <
+    typename ChunkSampler = samplers::RandomSampler,
+    typename ExampleSampler = samplers::RandomSampler>
 class LargeDataset : public datasets::ChunkDataSet<
-                         LargeDataset,
+                         LargeDataset<ChunkSampler,ExampleSampler>,
                          std::vector<int>,
-                         samplers::RandomSampler,
-                         samplers::RandomSampler> {
+                         ChunkSampler,
+                         ExampleSampler> {
  public:
   using BatchType = std::vector<int>;
   using BatchRequestType = size_t;
-  LargeDataset(size_t num_chunks, size_t batch_size)
+  using ChunkSamplerType = ChunkSampler;
+  using ExampleSamplerType = ExampleSampler;
+
+  LargeDataset(
+      size_t num_chunks,
+      size_t batch_size,
+      ChunkSampler chunk_sampler,
+      ExampleSampler example_sampler)
       : datasets::ChunkDataSet<
-                         LargeDataset,
-                         std::vector<int>,
-                         samplers::RandomSampler,
-                         samplers::RandomSampler> (1),
+            LargeDataset,
+            std::vector<int>,
+            ChunkSampler,
+            ExampleSampler>(1),
         num_chunks_(num_chunks),
         batch_size_(batch_size),
-        chunk_sampler_(std::move(samplers::RandomSampler(num_chunks))),
-        example_sampler_(std::move(samplers::RandomSampler(batch_size))) {}
+        chunk_sampler_(std::move(chunk_sampler)),
+        example_sampler_(std::move(example_sampler)) {}
 
   std::vector<int> read_chunk(size_t chunk_index) override {
     std::vector<int> batch(batch_size_);
@@ -1231,11 +1240,11 @@ class LargeDataset : public datasets::ChunkDataSet<
     return batch;
   }
 
-  samplers::RandomSampler get_chunk_sampler() override {
+  ChunkSampler get_chunk_sampler() override {
     return chunk_sampler_;
   }
 
-  samplers::RandomSampler get_example_sampler() override {
+  ExampleSampler get_example_sampler() override {
     return example_sampler_;
   }
 
@@ -1246,16 +1255,24 @@ class LargeDataset : public datasets::ChunkDataSet<
  private:
   size_t num_chunks_;
   size_t batch_size_;
-  samplers::RandomSampler chunk_sampler_;
-  samplers::RandomSampler example_sampler_;
+  ChunkSampler chunk_sampler_;
+  ExampleSampler example_sampler_;
 };
 
 TEST(DataTest, DataLoaderWithChunkSupportSingleWorker) {
   const size_t kBatchSize = 13;
   const size_t kNumChunks = 10;
 
-  datasets::SharedBatchDataset<LargeDataset> shared_dataset =
-      datasets::make_shared_dataset<LargeDataset>(kNumChunks, kBatchSize);
+  datasets::SharedBatchDataset<
+      LargeDataset<samplers::SequentialSampler, samplers::SequentialSampler>>
+      shared_dataset = datasets::make_shared_dataset<LargeDataset<
+          samplers::SequentialSampler,
+          samplers::SequentialSampler>>(
+          kNumChunks,
+          kBatchSize,
+          samplers::SequentialSampler(kBatchSize),
+          samplers::SequentialSampler(
+              0)); // proper value is set based on the chunk size.
 
   auto dataset =
       shared_dataset.map(transforms::Lambda<int>([](int x) { return x + 1; }));
@@ -1271,7 +1288,7 @@ TEST(DataTest, DataLoaderWithChunkSupportSingleWorker) {
     std::vector<int> batch = *iterator;
     ASSERT_EQ(batch.size(), kBatchSize);
     for (size_t j = 0; j < kBatchSize; ++j) {
-      ASSERT_EQ(batch.at(j), 1 + j);
+      ASSERT_EQ(batch.at(j), (j + 1 + (i * kBatchSize)));
     }
   }
 }
@@ -1280,8 +1297,12 @@ TEST(DataTest, DataLoaderWithChunkSupportMultiWorkers) {
   const size_t kBatchSize = 13;
   const size_t kNumChunks = 10;
 
-  datasets::SharedBatchDataset<LargeDataset> shared_dataset =
-      datasets::make_shared_dataset<LargeDataset>(kNumChunks, kBatchSize);
+  datasets::SharedBatchDataset<LargeDataset<>> shared_dataset =
+      datasets::make_shared_dataset<LargeDataset<>>(
+          kNumChunks,
+          kBatchSize,
+          samplers::RandomSampler(kBatchSize),
+          samplers::RandomSampler(0));
 
   auto data_loader = torch::data::make_chunk_data_loader(
       shared_dataset,
