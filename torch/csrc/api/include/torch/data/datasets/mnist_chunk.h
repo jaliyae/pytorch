@@ -1,5 +1,5 @@
 #pragma once
-
+/*
 #include <torch/data/datasets/base.h>
 #include <torch/data/datasets/chunk.h>
 #include <torch/data/example.h>
@@ -25,7 +25,7 @@ class TORCH_API MNIST_CHUNK : public datasets::ChunkDataSet<MNIST_CHUNK<ChunkSam
   /// The supplied `root` path should contain the *content* of the unzipped
   /// MNIST dataset, available from http://yann.lecun.com/exdb/mnist.
   explicit MNIST_CHUNK(const std::string& root, ChunkSampler chunk_sampler,
-      ExampleSampler example_sampler, Mode mode = Mode::kTrain);
+      ExampleSampler example_sampler, size_t num_prefetch_threads, Mode mode = Mode::kTrain);
 
   /// Returns true if this is the training subset of MNIST.
   bool is_train() const noexcept;
@@ -57,3 +57,4 @@ class TORCH_API MNIST_CHUNK : public datasets::ChunkDataSet<MNIST_CHUNK<ChunkSam
 } // namespace datasets
 } // namespace data
 } // namespace torch
+*/

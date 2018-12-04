@@ -1,3 +1,4 @@
+/*
 #include <torch/data/datasets/mnist_chunk.h>
 
 #include <torch/data/example.h>
@@ -97,22 +98,27 @@ Tensor read_targets(const std::string& root, bool train) {
 } // namespace
 
 template <typename ChunkSampler, typename ExampleSampler>
-MNIST_CHUNK<ChunkSampler, ExampleSampler>::MNIST_CHUNK(const std::string& root,ChunkSampler chunk_sampler,
-      ExampleSampler example_sampler, Mode mode)
-   : datasets::ChunkDataSet<
-            MNIST_CHUNK<ChunkSampler, ExampleSampler>,
-            std::vector<Example<>>,
-            ChunkSampler,
-            ExampleSampler>(1),
-        chunk_sampler_(std::move(chunk_sampler)),
-        example_sampler_(std::move(example_sampler)),
-    images_(read_images(root, mode == Mode::kTrain)),
+MNIST_CHUNK<ChunkSampler, ExampleSampler>::MNIST_CHUNK(
+    const std::string& root,
+    ChunkSampler chunk_sampler,
+    ExampleSampler example_sampler,
+    size_t num_prefetch_threads,
+    Mode mode)
+    : datasets::ChunkDataSet<
+          MNIST_CHUNK<ChunkSampler, ExampleSampler>,
+          std::vector<Example<>>,
+          ChunkSampler,
+          ExampleSampler>(num_prefetch_threads),
+      chunk_sampler_(std::move(chunk_sampler)),
+      example_sampler_(std::move(example_sampler)),
+      images_(read_images(root, mode == Mode::kTrain)),
       targets_(read_targets(root, mode == Mode::kTrain)) {}
 
 template <typename ChunkSampler, typename ExampleSampler>
-  std::vector<Example<>> MNIST_CHUNK<ChunkSampler, ExampleSampler>::read_chunk(size_t chunk_index){
-    return {{images_[chunk_index], targets_[chunk_index]}};
-  }
+std::vector<Example<>> MNIST_CHUNK<ChunkSampler, ExampleSampler>::read_chunk(
+    size_t chunk_index) {
+  return {{images_[chunk_index], targets_[chunk_index]}};
+}
 
 template <typename ChunkSampler, typename ExampleSampler>
 bool MNIST_CHUNK<ChunkSampler, ExampleSampler>::is_train() const noexcept {
@@ -129,6 +135,12 @@ const Tensor& MNIST_CHUNK<ChunkSampler, ExampleSampler>::targets() const {
   return targets_;
 }
 
+template <typename ChunkSampler, typename ExampleSampler>
+ size_t MNIST_CHUNK<ChunkSampler, ExampleSampler>::get_chunk_count(){
+  return is_train() ? kTrainSize : kTestSize;
+}
+
 } // namespace datasets
 } // namespace data
 } // namespace torch
+*/
