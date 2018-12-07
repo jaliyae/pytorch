@@ -132,7 +132,7 @@ MNIST_CHUNK<ChunkSampler, ExampleSampler>::MNIST_CHUNK(
           MNIST_CHUNK<ChunkSampler, ExampleSampler>,
           std::vector<Example<>>,
           ChunkSampler,
-          ExampleSampler>(num_prefetch_threads),
+          ExampleSampler>(num_prefetch_threads, /*ignore_empty_chunk*/ false),
       chunk_sampler_(std::move(chunk_sampler)),
       example_sampler_(std::move(example_sampler)),
       images_(read_images(root, mode == Mode::kTrain)),
